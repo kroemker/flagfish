@@ -26,7 +26,7 @@ public class Engine {
 	public MoveInfo move()
 	{
 		//System.out.println("Remaining seconds: " + clockManager.remainingTimeInMS(color)/1000);
-		MoveInfo mi = searcher.search(color, depthLimit, clockManager.remainingTimeInMS(color)/40);
+		MoveInfo mi = searcher.search(board.colorToMove, depthLimit, clockManager.remainingTimeInMS(color)/40);
 		logger.updateMoved(mi);
 		board.makeMove(mi.move);
 		colorToPlay = Color.invert(colorToPlay);

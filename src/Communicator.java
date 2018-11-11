@@ -93,9 +93,24 @@ public class Communicator {
 					
 					break;
 				case "go":
-					if (parts[1].equals("depth"))
-						engine.setDepthLimit(Integer.valueOf(parts[2]));
+					boolean infinite = false;
+					for (int i = 0; i < parts.length; i++)
+					{
+						if (parts[i].equals("depth")) 
+						{
+							engine.setDepthLimit(Integer.valueOf(parts[i+1]));
+							i++;
+						}
+						else if (parts[i].equals("movetime"))
+						{
+							engine.getClockManager().startMoveTimeClock((int)(Float.valueOf(parts[i+1])/1000.0f));
+							i++;
+						}
+					}
+					
 					bestMove = engine.move();
+					if (!infinite)
+						send("bestMove " + bestMove.move.toString());
 					break;
 				case "stop":
 					if(bestMove != null)
