@@ -35,6 +35,7 @@ public class Communicator {
 		
 		MoveInfo bestMove = null;
 		Protocol protocol = Protocol.Unknown;
+		boolean think = false;
 		while(!quit)
 		{
 			if (protocol == Protocol.XBoard && mode == MODE_GO && engine.engineToMove())
@@ -42,36 +43,34 @@ public class Communicator {
 				MoveInfo mi = engine.move();
 				send("move " + mi.move.toString());
 				// in case someone got mated update mode
-				mode = sendMateResult(engine.checkGameOver());
-			} //else if (protocol == Protocol.UCI && mode == MODE_GO) {
-			//	bestMove = engine.move();
-			//}
+				mode = sendMateResult(engine.checkGameOver(), mode);
+			} else if (protocol == Protocol.UCI && think) {
+				bestMove = engine.move();
+				send("bestmove " + bestMove.move.toString());
+				think = false;
+			}
 			
 			String command = reader.readLine();
-			//System.err.println("Server: " + command);
 			engine.logCommand("Server: " + command);
 			
-			String parts[] = command.split(" ");
+			String[] parts = command.split(" ");
 			switch (parts[0])
 			{
 			case "xboard":
 				protocol = Protocol.XBoard;
-				break;
+				continue;
 			case "uci":
 				protocol = Protocol.UCI;
-				send("id name " + engine.engineName);
-				send("id author Leo K");
+				send("id name " + Engine.engineName);
+				send("id author Leo Krömker");
 				send("uciok");
-				break;
+				continue;
 			}
 			
 			if (protocol == Protocol.UCI)
 			{
 				switch (parts[0]) 
 				{
-				case "printboard":
-					engine.board.print(System.out);
-					break;
 				case "isready":
 					send("readyok");
 					break;
@@ -98,21 +97,33 @@ public class Communicator {
 					{
 						if (parts[i].equals("depth")) 
 						{
-							engine.setDepthLimit(Integer.valueOf(parts[i+1]));
+							engine.setDepthLimit(Integer.parseInt(parts[i+1]));
 							i++;
 						}
 						else if (parts[i].equals("movetime"))
 						{
-							engine.getClockManager().startMoveTimeClock((int)(Float.valueOf(parts[i+1])/1000.0f));
+							engine.getClockManager().startMoveTimeClock(Integer.parseInt(parts[i+1]) / 1000);
 							i++;
 						}
+						else if (parts[i].equals("wtime")) 
+						{
+							engine.setClockTime(Color.WHITE, Integer.parseInt(parts[i+1]) / 1000);
+							i++;
+						}
+						else if (parts[i].equals("btime")) 
+						{
+							engine.setClockTime(Color.BLACK, Integer.parseInt(parts[i+1]) / 1000);
+							i++;
+						}
+						else if (parts[i].equals("infinite")) 
+						{
+							infinite = true;
+						}
 					}
-					
-					bestMove = engine.move();
-					if (!infinite)
-						send("bestMove " + bestMove.move.toString());
+					think = true;
 					break;
 				case "stop":
+					think = false;
 					if(bestMove != null)
 						send("bestMove " + bestMove.move.toString());
 					break;
@@ -126,7 +137,7 @@ public class Communicator {
 				switch (parts[0]) 
 				{
 				case "protover":
-					protocolVersion = Integer.valueOf(parts[1]);
+					protocolVersion = Integer.parseInt(parts[1]);
 					send("feature ping=1 setboard=1 playother=0 usermove=1 time=0 draw=1 colors=1 analyze=0 myname=\"" + Engine.engineName + "\"");
 				case "computer":
 				case "accepted":
@@ -154,6 +165,7 @@ public class Communicator {
 					break;
 				case "go":
 					mode = MODE_GO;
+					engine.setColor(engine.board.getColorToMove());
 					break;
 				case "white":
 					engine.setColor(Color.WHITE);
@@ -162,27 +174,23 @@ public class Communicator {
 					engine.setColor(Color.BLACK);
 					break;
 				case "level":
-					engine.getClockManager().startClock(Integer.valueOf(parts[1]), Integer.valueOf(parts[2])*60, Integer.valueOf(parts[3]));
+					String[] baseParts = parts[2].split(":");
+					if (baseParts.length == 2)
+						engine.getClockManager().startClock(Integer.parseInt(parts[1]), Integer.parseInt(baseParts[0])*60 + Integer.parseInt(baseParts[1]), Integer.parseInt(parts[3]));
+					else
+						engine.getClockManager().startClock(Integer.parseInt(parts[1]), Integer.parseInt(baseParts[0])*60, Integer.parseInt(parts[3]));
 					break;
 				case "st":
-					engine.getClockManager().startMoveTimeClock(Integer.valueOf(parts[1]));
+					engine.getClockManager().startMoveTimeClock((int)Float.parseFloat(parts[1]));
 					break;
 				case "sd":
-					engine.setDepthLimit(Integer.valueOf(parts[1]));
+					engine.setDepthLimit(Integer.parseInt(parts[1]));
 					break;
 				case "nps":
 					break;
 				case "time":
 					break;
 				case "otim":
-					break;
-				case "usermove":
-					String err = engine.inputMove(parts[1]);
-					if (err != null)
-						send(err);
-					else
-						// in case someone got mated update mode
-						mode = sendMateResult(engine.checkGameOver());
 					break;
 				case "?":
 					break;
@@ -195,7 +203,7 @@ public class Communicator {
 					engine.setResult(parts[1], parts[2]);
 					break;
 				case "setboard":
-					engine.setBoard(command.substring(9)); //parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6]);
+					engine.setBoard(command.substring(9));
 					break;
 				case "edit":
 					editMode = true;
@@ -231,21 +239,23 @@ public class Communicator {
 					engine.setOpponentName(parts[1]);
 					break;
 				case "rating":
-					engine.setRatings(Integer.valueOf(parts[1]), Integer.valueOf(parts[2]));
+					engine.setRatings(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
 					break;
+				case "usermove":
 				default:
-					String err1 = engine.inputMove(parts[0]);
-					if (err1 != null)
-						engine.logCommand(err1);
+					String err = engine.inputMove(parts[1]);
+					if (err != null)
+						send(err);
 					else
 						// in case someone got mated update mode
-						mode = sendMateResult(engine.checkGameOver());
+						mode = sendMateResult(engine.checkGameOver(), mode);
+					break;
 				}
 			}
 		}
 	}
 
-	int sendMateResult(int color)
+	int sendMateResult(int color, int currentMode)
 	{
 		if (color == Color.WHITE)
 		{
@@ -257,12 +267,11 @@ public class Communicator {
 			send("1-0 {White mates}");
 			return MODE_FORCE;
 		}
-		return MODE_GO;
+		return currentMode;
 	}
 	
 	void send(String s)
 	{
-		//System.err.println("Engine: " + s);
 		engine.logCommand("Engine: " + s);
 		System.out.println(s);
 	}

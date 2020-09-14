@@ -8,7 +8,7 @@ public class ZobristHasher
 	
 	private long zobristHash;
 	
-	private int tableSize = 2 *  64 * 6 + 16 + 8 + 1; //2 players * 64 squares * 6 different pieces + 16 castling right permutations + 8 files of the enpassant square + 1 black to move
+	private int tableSize = 2 * 64 * 6 + 16 + 8 + 1; //2 players * 64 squares * 6 different pieces + 16 castling right permutations + 8 files of the enpassant square + 1 black to move
 
 	private int castlingRightIndex;
 	

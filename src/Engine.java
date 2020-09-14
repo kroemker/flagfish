@@ -1,26 +1,30 @@
 
 public class Engine {
 
-	public static final String engineName = "Flagfish1.1";
+	public static final String engineName = "Flagfish";
 	
 	Logger logger;
 	Searcher searcher;
 	Board board;
 	ClockManager clockManager;
 	
+	// this 
 	private int color; // white or black
-	private int colorToPlay;
+	
 	private int depthLimit;
+	private int[] clock; // ms
 	
 	public Engine(Board b, Searcher s, Logger l)
 	{
 		board = b;
 		searcher = s;
 		logger = l;
-		clockManager = new ClockManager();
+		clockManager = new ClockManager(b);
 		depthLimit = 0;
-		color = Color.BLACK;
-		colorToPlay = Color.WHITE;
+		clock = new int[2];
+		clock[0] = 60000;
+		clock[1] = 60000;
+		color = Color.WHITE;
 	}
 	
 	public MoveInfo move()
@@ -29,15 +33,17 @@ public class Engine {
 		MoveInfo mi = searcher.search(board.colorToMove, depthLimit, clockManager.remainingTimeInMS(color)/40);
 		logger.updateMoved(mi);
 		board.makeMove(mi.move);
-		colorToPlay = Color.invert(colorToPlay);
 		clockManager.updateMove();
 		return mi;
+	}
+	
+	public MoveInfo UCIMove() {
+		return null;
 	}
 
 	public void startNewGame()
 	{
 		board.loadStartPosition();
-		colorToPlay = Color.WHITE;
 	}
 	
 	public int getColor() 
@@ -58,6 +64,16 @@ public class Engine {
 	public void setDepthLimit(int depthLimit) 
 	{
 		this.depthLimit = depthLimit;
+	}
+	
+	public void setClockTime(int color, int time)
+	{
+		clock[color] = time;
+	}
+
+	public int getClockTime(int color)
+	{
+		return clock[color];
 	}
 	
 	public void setBoard(String FEN)
@@ -90,7 +106,6 @@ public class Engine {
 		board.unmakeMove(logger.getLastMove());
 		logger.removeLastMove();
 		color = Color.invert(color);
-		colorToPlay = Color.invert(colorToPlay);
 	}
 	
 	public int checkGameOver()
@@ -117,7 +132,7 @@ public class Engine {
 	
 	public boolean engineToMove()
 	{
-		return color == colorToPlay;
+		return color == board.getColorToMove();
 	}
 	
 	public String inputMove(String input)
@@ -130,7 +145,7 @@ public class Engine {
 		}
 		
 		int k = getFileByChar(input.charAt(0));
-		int q = Integer.valueOf(String.valueOf(input.charAt(1))) - 1;
+		int q = Integer.parseInt(String.valueOf(input.charAt(1))) - 1;
 		int src = k + q * 16;
 		if (k == 8 || q < 0 || q > 7)
 		{
@@ -138,7 +153,7 @@ public class Engine {
 		}
 		
 		k = getFileByChar(input.charAt(2));
-		q = Integer.valueOf(String.valueOf(input.charAt(3))) - 1;
+		q = Integer.parseInt(String.valueOf(input.charAt(3))) - 1;
 		int dest = k + q * 16;
 		if (k == 8 || q < 0 || q > 7)		
 		{
@@ -148,7 +163,8 @@ public class Engine {
 		Piece.Type promoType = Piece.Type.None;
 		if (input.length() == 5)
 			promoType = getPieceTypeFromChar(input.charAt(4));
-		
+
+		int colorToPlay = board.getColorToMove();
 		Piece king = board.getPiece(getKing(colorToPlay));
 		
 		if (input.equals("e1g1") && king != null && king.type == Piece.Type.King)
@@ -181,7 +197,6 @@ public class Engine {
 		logger.updateMoved(new MoveInfo(m, 0, 0, 0, 0, 0));
 		board.makeMove(m);
 		clockManager.updateMove();
-		colorToPlay = Color.invert(colorToPlay);
 		return null;
 	}
 

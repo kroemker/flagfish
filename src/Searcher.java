@@ -14,6 +14,14 @@ public class Searcher {
 	MoveComparator comparator;
 	TimeManager timeManager;
 	
+	MoveInfo currentBestMove = null;
+	MoveInfo lastBestMove = null;
+	int depth = 1;
+	long start = 0;
+	long timeLimit = 0; // ms
+	int color;
+	int depthLimit = 0;
+	
 	public Searcher(Board board, Evaluator evaluator, MoveComparator comparator, TimeManager timeManager)
 	{
 		this.board = board;
@@ -23,7 +31,29 @@ public class Searcher {
 		alphaBetaNodes = 0;
 		quiesceNodes = 0;
 	}
-		
+	
+	public void prepareThink(int color, int depthLimit, long timeLimit) {
+		depth = 1;
+		currentBestMove = null;
+		lastBestMove = null;
+		start = System.nanoTime();
+		this.color = color;
+		this.depthLimit = depthLimit;
+		this.timeLimit = timeLimit;
+	}
+	
+	public MoveInfo think()
+	{
+		currentBestMove = searchRoot(color, depth, timeLimit * 1000000L);
+		depth++;
+			
+		if(!currentBestMove.aborted) {
+			lastBestMove = currentBestMove;
+		}
+
+		return lastBestMove;
+	}
+	
 	public MoveInfo search(int color, int depthLimit, long timeLimit)
 	{
 		timeLimit = timeLimit * 1000000L;
@@ -133,7 +163,7 @@ public class Searcher {
 		float score = 0;
 		List<Move> moves = board.generateMoves(color);
 		
-		Collections.sort(moves, comparator);
+		moves.sort(comparator);
 		ListIterator<Move> it = moves.listIterator();
 		
 		while(it.hasNext())
@@ -201,7 +231,7 @@ public class Searcher {
 		
 		float score;
 		List<Move> moves = board.generateCaptures(color);
-		Collections.sort(moves, comparator);
+		moves.sort(comparator);
 		ListIterator<Move> it = moves.listIterator();
 		while(it.hasNext())
 		{

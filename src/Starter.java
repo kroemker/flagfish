@@ -108,7 +108,7 @@ public class Starter {
 			return null;
 		
 		int k = getFileByChar(input.charAt(0));
-		int q = Integer.valueOf(String.valueOf(input.charAt(1))) - 1;
+		int q = Integer.parseInt(String.valueOf(input.charAt(1))) - 1;
 		int src = k + q * 16;
 		int dest = getFileByChar(input.charAt(2)) + (Integer.valueOf(String.valueOf(input.charAt(3)))-1) * 16;
 		

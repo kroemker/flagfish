@@ -36,11 +36,8 @@ public class Logger {
 			try 
 			{
 				logFile = new PrintStream("log_" + dateFormat.format(date) + ".txt", "UTF-8");
-			} catch (FileNotFoundException e) 
+			} catch (FileNotFoundException | UnsupportedEncodingException e)
 			{	
-				e.printStackTrace();
-			} catch (UnsupportedEncodingException e) 
-			{
 				e.printStackTrace();
 			}
 	}
@@ -87,11 +84,8 @@ public class Logger {
 			}
 			pgnFile.close();
 			
-		} catch (FileNotFoundException e) 
+		} catch (FileNotFoundException | UnsupportedEncodingException e)
 		{	
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) 
-		{
 			e.printStackTrace();
 		}
 	}
@@ -150,7 +144,7 @@ public class Logger {
 	}
 	
 	@Override
-	protected void finalize()
+	public void finalize()
 	{
 		if(logFile != null)
 			logFile.close();

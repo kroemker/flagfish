@@ -129,14 +129,17 @@ public class Board {
 		int rank = 7;
 		int file = 0;
 		boolean piece = false;
-		
+
+		whitePieces.clear();
+		blackPieces.clear();
+
 		int i = 0;
 		for(i = 0; i < len; i++)
 		{
 			char c = fen.charAt(i);
 			if (Character.isDigit(c)) 
 			{
-				file += Integer.valueOf(String.valueOf(c));
+				file += Integer.parseInt(String.valueOf(c));
 			}
 			else
 			{	
@@ -258,7 +261,7 @@ public class Board {
 		
 		if (enpassantFile >= 0)
 		{
-			enpassantRank = Integer.valueOf(fen.charAt(i));
+			enpassantRank = (int) fen.charAt(i);
 		}
 		
 		refillBoardByPieceList();
@@ -313,13 +316,11 @@ public class Board {
 		return kings[color];
 	}
 	
-	public int getEnpassantSquare()
-	{
+	public int getEnpassantSquare() {
 		return enpassantSquare;
 	}
 	
-	public Piece getEnpassantPiece()
-	{
+	public Piece getEnpassantPiece() {
 		return enpassantPiece;
 	}
 	
